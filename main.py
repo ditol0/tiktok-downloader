@@ -9,11 +9,16 @@ os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 @app.route('/download', methods=['POST'])
 def download_video():
-    data = request.get_json()
-    if not data or "url" not in data:
-        return {"error": "يرجى إرسال رابط الفيديو في حقل 'url'."}, 400
+    # يدعم JSON و Form
+    url = None
+    if request.is_json:
+        url = request.get_json().get("url")
+    else:
+        url = request.form.get("url")
 
-    url = data["url"]
+    if not url:
+        return jsonify({"error": "يرجى إرسال رابط الفيديو في الحقل 'url'."}), 400
+
     video_id = str(uuid.uuid4())
     filename = f"{video_id}.mp4"
     output_path = os.path.join(DOWNLOAD_FOLDER, filename)
@@ -32,9 +37,9 @@ def download_video():
             # نرجع رابط مباشر لتحميل الملف
             return jsonify({"download_url": f"https://{request.host}/file/{filename}"})
         else:
-            return {"error": "فشل تحميل الفيديو."}, 500
+            return jsonify({"error": "فشل تحميل الفيديو."}), 500
     except Exception as e:
-        return {"error": str(e)}, 500
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/file/<filename>', methods=['GET'])
 def serve_file(filename):
